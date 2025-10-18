@@ -37,6 +37,8 @@ ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx'}
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
     
@@ -967,7 +969,6 @@ def get_templates():
         return jsonify({'error': str(e)}), 500
 
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 @app.route('/summarize_document', methods=['POST'])
 def summarize_document():
@@ -1039,6 +1040,7 @@ def summarize_document():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
