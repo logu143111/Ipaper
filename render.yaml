@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: login-app
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn app:app"
+    envVars:
+      - key: "postgresql://neondb_owner:npg_zL7hEuVMZ5iv@ep-tiny-mouse-a1uj4utg-pooler.ap-southeast-1.aws.neon.tech/FYP?sslmode=require&channel_binding=require"
+        fromDatabase:
+          name: FYP
+          property: connectionString

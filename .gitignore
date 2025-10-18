@@ -1,0 +1,9 @@
+# Environment variables and secrets
+.env
+
+# Python compiled files
+__pycache__/
+*.pyc
+
+# OS files
+.DS_Store
