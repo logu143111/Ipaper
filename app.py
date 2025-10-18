@@ -967,6 +967,7 @@ def get_templates():
         return jsonify({'error': str(e)}), 500
 
 
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 @app.route('/summarize_document', methods=['POST'])
 def summarize_document():
@@ -977,9 +978,11 @@ def summarize_document():
         data = request.get_json()
         doc_id = data.get('document_id')
         template_prompt = data.get('prompt')
+
         if not doc_id or not template_prompt:
             return jsonify({"success": False, "error": "Missing parameters"}), 400
 
+        # Fetch PDF from DB
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(
@@ -996,35 +999,47 @@ def summarize_document():
         pdf_data, filename = row
         pdf_bytes = pdf_data.tobytes() if hasattr(pdf_data, "tobytes") else pdf_data
 
-        from PyPDF2 import PdfReader
-        import io
-
+        # --- Extract text from first 5 pages ---
         text_chunks = []
-        reader = PdfReader(io.BytesIO(pdf_bytes))
-        for page in reader.pages[:5]:
-            page_text = page.extract_text()
-            if page_text:
-                text_chunks.append(page_text)
+        try:
+            reader = PdfReader(io.BytesIO(pdf_bytes))
+            for page_num, page in enumerate(reader.pages[:5]):
+                page_text = page.extract_text()
+                if page_text:
+                    text_chunks.append(page_text)
+        except Exception as e:
+            print("⚠️ PDF read error:", e)
 
         text = "\n".join(text_chunks)[:15000]
+        if not text.strip():
+            return jsonify({"success": False, "error": "No text extracted"}), 400
 
-        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        # --- OpenAI Summarization ---
+        prompt = f"{template_prompt}\n\nDocument content:\n{text}"
 
-        prompt = f"{template_prompt}\n\nDocument Content:\n{text}"
-        response = model.generate_content(prompt)
-        summary = response.text.strip() if hasattr(response, "text") else "No summary generated."
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a helpful summarization assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=500
+        )
+
+        summary = response.choices[0].message.content.strip()
 
         return jsonify({"success": True, "summary": summary})
 
     except Exception as e:
-        print("Gemini API error:", e)
-        return jsonify({"success": False, "error": str(e)}), 500
-        
+        print("OpenAI API error:", e)
+        return jsonify({"success": False, "error": f"OpenAI API error: {e}"}), 500
+
+
 
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
