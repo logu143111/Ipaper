@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feedback</title>
+  <style>
+    :root {
+      --primary: #2c5aa0;
+      --primary-light: #4a76c2;
+      --text: #2c3e50;
+      --text-light: #7f8c8d;
+      --background: #f0f4f8;
+      --card: #ffffff;
+      --border: #d6eaf8;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      --success: #4caf50;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif;
+      background-color: var(--background);
+      color: var(--text);
+      line-height: 1.6;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .card {
+      background: var(--card);
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      width: 100%;
+      max-width: 500px;
+      border: 1px solid var(--border);
+    }
+    
+    h2 {
+      text-align: center;
+      margin-bottom: 30px;
+      color: var(--primary);
+      font-size: 28px;
+      font-weight: 700;
+    }
+    
+    .form-group {
+      margin-bottom: 25px;
+    }
+    
+    label {
+      font-weight: 600;
+      display: block;
+      margin-bottom: 8px;
+      color: var(--text);
+      font-size: 16px;
+    }
+    
+    input, select, textarea {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 16px;
+      background-color: #f8fbff;
+      transition: all 0.2s ease;
+    }
+    
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(44, 90, 160, 0.1);
+    }
+    
+    textarea { 
+      resize: none; 
+      height: 120px; 
+      font-family: inherit;
+    }
+    
+    .rating {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin: 15px 0;
+    }
+    
+    .rating input { 
+      display: none; 
+    }
+    
+    .rating label {
+      font-size: 32px;
+      color: #e0e0e0;
+      cursor: pointer;
+      transition: color 0.2s ease;
+    }
+    
+    .rating input:checked ~ label,
+    .rating label:hover,
+    .rating label:hover ~ label {
+      color: gold;
+    }
+    
+    .rating-value {
+      text-align: center;
+      margin-top: 10px;
+      font-weight: 600;
+      color: var(--text);
+      font-size: 18px;
+    }
+    
+    button {
+      width: 100%;
+      padding: 16px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 10px;
+    }
+    
+    button:hover {
+      background: var(--primary-light);
+      transform: translateY(-2px);
+    }
+    
+    .form-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 25px 0;
+    }
+    
+    .character-count {
+      text-align: right;
+      color: var(--text-light);
+      font-size: 14px;
+      margin-top: 5px;
+    }
+    
+    @media (max-width: 600px) {
+      .card {
+        padding: 30px 20px;
+      }
+      
+      h2 {
+        font-size: 24px;
+      }
+      
+      .rating label {
+        font-size: 28px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Feedback Form</h2>
+    <form method="POST" action="/feedback">
+      <div class="form-group">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" placeholder="Enter your name" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="profession">Profession</label>
+        <input type="text" id="profession" name="profession" placeholder="Enter your profession" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="feedback_type">Feedback Type</label>
+        <select id="feedback_type" name="feedback_type">
+          <option value="Summarization">Accurate Summarization</option>
+          <option value="Experience">User-Friendly Experience</option>
+          <option value="TimeSaving">Time-Saving Power</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="feedback_text">Message</label>
+        <textarea id="feedback_text" name="feedback_text" placeholder="Share your thoughts..." required maxlength="800"></textarea>
+        <div class="character-count">
+          <span id="charCount">0</span>/800
+        </div>
+      </div>
+      
+      <div class="form-divider"></div>
+      
+      <div class="form-group">
+        <label>Rating</label>
+        <div class="rating">
+          <input type="radio" id="star5" name="rating" value="5"><label for="star5">★</label>
+          <input type="radio" id="star4" name="rating" value="4"><label for="star4">★</label>
+          <input type="radio" id="star3" name="rating" value="3"><label for="star3">★</label>
+          <input type="radio" id="star2" name="rating" value="2"><label for="star2">★</label>
+          <input type="radio" id="star1" name="rating" value="1"><label for="star1">★</label>
+        </div>
+        <div class="rating-value" id="ratingValue">0/5</div>
+      </div>
+      
+      <button type="submit">Submit</button>
+    </form>
+  </div>
+
+  <script>
+    const stars = document.querySelectorAll(".rating input");
+    const ratingValue = document.getElementById("ratingValue");
+    const feedbackText = document.getElementById("feedback_text");
+    const charCount = document.getElementById("charCount");
+
+    // Rating functionality
+    stars.forEach(star => {
+      star.addEventListener("change", () => {
+        ratingValue.textContent = star.value + "/5";
+      });
+    });
+
+    // Character count functionality
+    feedbackText.addEventListener("input", () => {
+      charCount.textContent = feedbackText.value.length;
+    });
+
+    // Initialize character count
+    charCount.textContent = feedbackText.value.length;
+  </script>
+</body>
+</html>

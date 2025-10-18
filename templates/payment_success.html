@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Payment Success</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #e6ffee;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .success-container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            display: inline-block;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h2 {
+            color: #28a745;
+            margin-bottom: 15px;
+        }
+
+        .plan-info {
+            display: flex;
+            justify-content: space-between;
+            margin: 25px 0;
+            padding-bottom: 20px;
+        }
+
+        .info-column {
+            text-align: center;
+            flex: 1;
+        }
+
+        .info-label {
+            color: #666;
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .info-value {
+            font-weight: bold;
+            display: block;
+            font-size: 16px;
+        }
+
+        .btn-container {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 25px;
+        }
+
+        .btn {
+            padding: 8px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 7px;
+            text-decoration: none;
+            font-size: 14px;
+            cursor: pointer;
+            display: inline-block;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+
+        .btn:hover {
+            background-color: #0056b3;
+        }
+
+        .receipt-note {
+            margin-top: 25px;
+            color: #666;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="success-container">
+        <h2>Payment Successful!</h2>
+        <p>You are now subscribed to the <strong>{{ selected_plan }}</strong> plan.</p>
+        
+        <div class="plan-info">
+            <div class="info-column">
+                <span class="info-label">Amount</span>
+                <span class="info-value">{{ amount }}</span>
+            </div>
+            <div class="info-column">
+                <span class="info-label">Plan</span>
+                <span class="info-value">{{ selected_plan }}</span>
+            </div>
+            <div class="info-column">
+                <span class="info-label">Next renewal</span>
+                <span class="info-value">{{ next_renewal }}</span>
+            </div>
+        </div>
+        
+        <div class="btn-container">
+            <a href="{{ url_for('dashboard') }}" class="btn">Back to Dashboard</a>
+            <a href="{{ url_for('membership') }}" class="btn btn-secondary">Manage Subscription</a>
+        </div>
+        
+        <p class="receipt-note">A receipt has been emailed to you. You can change or cancel anytime.</p>
+    </div>
+</body>
+</html>

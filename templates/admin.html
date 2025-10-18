@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>User Dashboard - Modern Minimal UI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #f7f8fa;
+      --card-bg: #ffffff;
+      --text-main: #1f1f1f;
+      --text-muted: #666;
+      --accent-blue: #007bff;
+      --accent-red: #e63946;
+      --shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px 40px 0 40px;
+    }
+
+    header h1 {
+      font-size: 24px;
+      margin: 0;
+    }
+
+    header p {
+      margin: 4px 0 0 0;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .logout-btn {
+      background: var(--accent-red);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .logout-btn:hover {
+      opacity: 0.9;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 40px;
+      gap: 30px;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 30px;
+      width: 100%;
+      max-width: 1000px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+    }
+
+    .card h2 {
+      font-size: 18px;
+      margin: 0 0 8px;
+      color: var(--text-main);
+    }
+
+    .card p {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin: 0 0 16px;
+    }
+
+    .card a {
+      color: var(--accent-blue);
+      font-weight: 600;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .card a:hover {
+      text-decoration: underline;
+    }
+
+    .bottom-actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 6px;
+      padding: 10px 18px;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .btn.blue { background: var(--accent-blue); }
+    .btn.green { background: #2a9d8f; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Welcome, {{ name }}</h1>
+      <p>Quick actions to keep your documents organized and updated.</p>
+    </div>
+    <button class="logout-btn" onclick="window.location.href='/logout'">Log out</button>
+  </header>
+
+  <main>
+    <div class="card-grid">
+      <div class="card">
+        <h2>Manage User Account</h2>
+        <p>Search users, change roles, reset passwords, and manage access levels.</p>
+        <a href="/admin/users">Open →</a>
+      </div>
+
+      <div class="card">
+        <h2>Upload Summary Template</h2>
+        <p>Add new templates or update existing ones. Tag by category for easy access.</p>
+        <a href="/admin/templates">Open →</a>
+      </div>
+    </div>
+
+    
+  </main>
+</body>
+</html>

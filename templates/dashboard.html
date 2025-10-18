@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>User Dashboard Document Upload</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    :root{
+      --ls-min:140px; --ls-max:360px; --ls-w:260px;
+      --us-min:160px; --us-max:420px; --us-w:320px;
+      --bar-w:6px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.04);
+      --shadow: 0 2px 8px rgba(0,0,0,.08);
+      --shadow-lg: 0 8px 24px rgba(0,0,0,.12);
+      --bg:#f8fafc;
+      --card:#ffffff;
+      --text:#1e293b;
+      --muted:#64748b;
+      --brand:#3b82f6;
+      --brand-dark:#2563eb;
+      --success:#10b981;
+      --danger:#ef4444;
+      --border:#e2e8f0;
+      --hover:#f1f5f9;
+      --accent:#8b5cf6;
+      --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    *{box-sizing:border-box; margin:0; padding:0;}
+    html,body{height:100%; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;}
+    body{color:var(--text);background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);font-size: 14px;line-height: 1.6;-webkit-font-smoothing: antialiased;}
+    .app{height:100vh;display:grid;grid-template-columns:var(--ls-w) var(--bar-w) var(--us-w) var(--bar-w) 1fr;transition:grid-template-columns .3s cubic-bezier(0.4, 0, 0.2, 1);}
+    .collapse-ls{grid-template-columns:0 var(--bar-w) var(--us-w) var(--bar-w) 1fr;}
+    .collapse-us{grid-template-columns:var(--ls-w) var(--bar-w) 0 var(--bar-w) 1fr;}
+    .collapse-both{grid-template-columns:0 0 0 0 1fr;}
+    .sidebar{background:var(--card);box-shadow:var(--shadow);display:flex;flex-direction:column;backdrop-filter: blur(10px);} 
+    .ls{padding:24px 20px;position:relative;overflow-y:visible;border-right: 1px solid var(--border);} 
+    .us{padding:24px 20px;position:relative;overflow:auto;border-right: 1px solid var(--border);} 
+    .main{background:transparent;padding:32px;overflow:auto;}
+    .pane-title{font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin:0 0 16px;display:flex;align-items:center;justify-content:space-between;}
+    .btn{border:0;border-radius:8px;padding:12px 16px;font-weight:500;cursor:pointer;background:var(--hover);color:var(--text);width:100%;text-align:left;margin-bottom:8px;transition: all 0.2s ease;font-size: 13px;border: 1px solid transparent;}
+    .btn:hover{background:#e2e8f0;transform: translateY(-1px);box-shadow: var(--shadow-sm);}    
+    .btn.brand{background: var(--gradient);color:#fff;font-weight: 600;border: none;}    
+    .muted{color:var(--muted);font-size: 13px;}
+
+    .resizer{position:relative;background:transparent;width:var(--bar-w);cursor: col-resize;}
+    .resizer::after{content:"";position:absolute;top:0;bottom:0;left:calc(50% - 1px);width:1px;background:var(--border);transition: background 0.2s ease;}
+    .resizer:hover::after{background: var(--brand);}
+
+    .topbar{position:sticky;top:0;z-index:5;display:flex;gap:12px;align-items:center;padding:20px 24px;background:rgba(255,255,255,0.9);border-bottom:1px solid var(--border);backdrop-filter: blur(10px);border-radius: 16px;margin-bottom: 24px;box-shadow: var(--shadow-sm);}    
+    .upload-card{background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);border:2px dashed var(--border);border-radius:12px;padding:20px;transition: all 0.3s ease;}    
+    input[type="file"]{width:100%;margin:12px 0;padding: 10px;border: 1px solid var(--border);border-radius: 8px;background: white;font-size: 13px;cursor: pointer;}    
+    input[type="file"]::file-selector-button{background: var(--brand);color: white;border: none;padding: 8px 16px;border-radius: 6px;cursor: pointer;font-weight: 500;margin-right: 12px;transition: all 0.2s ease;}    
+    .logout{display:block;margin-top:16px;color:var(--danger);text-decoration:none;font-size: 13px;font-weight: 500;padding: 8px 12px;border-radius: 6px;transition: all 0.2s ease;}    
+    .document-item {position: relative;padding: 12px 32px 12px 16px;margin: 6px 0;background: white;border-radius: 8px;cursor: grab;border: 1px solid var(--border);transition: all 0.2s ease;font-size: 13px;font-weight: 500;}    
+    .document-item:hover {background: var(--hover);transform: translateX(4px);box-shadow: var(--shadow-sm);border-color: var(--brand);}    
+    .document-item.dragging {opacity: 0.5;transform: rotate(2deg) scale(0.95);}    
+    .document-delete-btn {position: absolute;top: 50%;transform: translateY(-50%);right: 8px;width: 20px;height: 20px;border: none;background: #fee2e2;border-radius: 6px;cursor: pointer;color: var(--danger);font-size: 11px;display: flex;align-items: center;justify-content: center;padding: 0;transition: all 0.2s ease;}    
+    .document-delete-btn:hover {background: var(--danger);color: white;}    
+    .category {margin-bottom: 10px;position: relative;padding: 14px 16px;border-radius: 10px;cursor: pointer;transition: all 0.2s ease;border: 2px solid transparent;background: var(--hover);}    
+    .category.drag-over {border-color: var(--brand);background: #dbeafe;transform: scale(1.02);box-shadow: var(--shadow);}    
+    .category-title {font-weight: 600;margin-bottom: 8px;font-size: 14px;color: var(--text);}    
+    .documents-list {min-height: 20px;padding: 8px;border-radius: 8px;background: var(--hover);}    
+    .active-category {background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;border-color: var(--brand) !important;box-shadow: var(--shadow-sm);}    
+    .delete-category {position: absolute;top: 10px;right: 10px;width: 24px;height: 24px;border: none;background: #fee2e2;border-radius: 6px;cursor: pointer;color: var(--danger);font-size: 13px;display: flex;align-items: center;justify-content: center;opacity: 0;transition: all 0.2s ease;}    
+    .category:hover .delete-category {opacity: 1;}    
+    .action-btn {background: var(--brand);color: white;border: none;border-radius: 8px;padding: 10px 20px;cursor: pointer;font-weight: 600;margin-left: 8px;transition: all 0.2s ease;font-size: 13px;box-shadow: var(--shadow-sm);}    
+    .action-btn.secondary {background: var(--success);}    
+    .template-selector-modal {position: fixed;top: 0;left: 0;right: 0;bottom: 0;background: rgba(0,0,0,0.6);z-index: 1001;display: flex;justify-content: center;align-items: center;backdrop-filter: blur(4px);}    
+    .template-selector-container {width: 75%;height: 75%;max-width: 900px;max-height: 650px;background: white;border-radius: 16px;display: flex;position: relative;box-shadow: var(--shadow-lg);overflow: hidden;}    
+    .hidden {display: none;}    
+    .categories-container {flex: 1;overflow-y: auto;margin-bottom: 16px;}    
+    .main h1 {font-size: 32px;font-weight: 700;color: var(--text);margin-bottom: 8px;background: var(--gradient);-webkit-background-clip: text;-webkit-text-fill-color: transparent;background-clip: text;} 
+    
+    /* 折叠功能样式 */
+    .app.collapse-ls #ls,
+    .app.collapse-both #ls {
+      box-shadow: none !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+      width: 0 !important;
+      min-width: 0 !important;
+    }
+    .app.collapse-ls #bar-ls::after,
+    .app.collapse-both #bar-ls::after { opacity: 0; }
+    .app.collapse-us #us,
+    .app.collapse-both #us {
+      box-shadow: none !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+      width: 0 !important;
+      min-width: 0 !important;
+    }
+    .app.collapse-us #bar-us::after,
+    .app.collapse-both #bar-us::after { opacity: 0; }
+    .app.collapse-ls #ls,
+    .app.collapse-us #us { pointer-events: none; }
+    #bar-ls, #bar-us { position: relative; }
+    #bar-ls .collapse-btn, #bar-us .collapse-btn { pointer-events: auto; }
+    
+    .collapse-btn {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+      width: 18px;
+      height: 24px;
+      border: none;
+      border-radius: 4px;
+      background: #b3d9ff;
+      cursor: pointer;
+      font-size: 12px;
+      line-height: 1;
+      color: var(--brand);
+    }
+    .collapse-btn:hover { background: #99ccff; }
+    
+    .ls {
+      display: flex;
+      flex-direction: column;
+    }
+    .account-section {
+      margin-top: auto;
+    }
+
+    /* Template Selector Modal Styles */
+    .template-selector-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1001;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .template-selector-container {
+      width: 70%;
+      height: 70%;
+      max-width: 800px;
+      max-height: 600px;
+      background: white;
+      border-radius: 8px;
+      display: flex;
+      position: relative;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .template-selector-modal .sidebar {
+      width: 200px;
+      background-color: #f0f4f8;
+      border-right: 1px solid #d6eaf8;
+      padding: 15px;
+      overflow-y: auto;
+    }
+
+    .template-selector-modal .sidebar-title {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      color: var(--accent);
+    }
+
+    .template-selector-modal .sidebar-section {
+      margin-bottom: 20px;
+    }
+
+    .template-selector-modal .sidebar-section-title {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    .template-selector-modal .sidebar-item {
+      padding: 6px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s ease;
+    }
+
+    .template-selector-modal .sidebar-item:hover {
+      background-color: #e8f4f8;
+    }
+
+    .template-selector-modal .sidebar-item.active {
+      background-color: #d6eaf8;
+      font-weight: bold;
+      color: var(--accent);
+    }
+
+    .template-selector-modal .arrow-icon {
+      width: 0;
+      height: 0;
+      border-top: 4px solid transparent;
+      border-bottom: 4px solid transparent;
+      border-left: 4px solid var(--muted);
+      margin-left: 8px;
+    }
+
+    .template-selector-modal .content-area {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    .template-selector-modal .content-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      align-content: flex-start;
+    }
+
+    .template-selector-modal .content-box {
+      width: 240px;
+      border: 1px solid #d6eaf8;
+      border-radius: 6px;
+      padding: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      background: #f8fbff;
+      transition: all 0.2s ease;
+    }
+
+    .template-selector-modal .content-box:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .template-selector-modal .content-box-title {
+      font-weight: bold;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: var(--accent);
+    }
+
+    .template-selector-modal .content-box-description {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .template-selector-modal .content-box-footer {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #999;
+    }
+
+    .template-selector-modal .generate-button {
+      position: absolute;
+      bottom: 15px;
+      right: 15px;
+      background-color: var(--brand);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .template-selector-modal .generate-button:hover {
+      background-color: #1a4a7a;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    /* Categories container for better organization */
+    .categories-container {
+      flex: 1;
+      overflow-y: auto;
+      margin-bottom: 10px;
+    }
+    
+    /* NEW STYLES - Enhanced UI to match the image */
+    .main h1 {
+      color: var(--accent);
+      margin-bottom: 10px;
+      font-weight: 600;
+      font-size: 24px;
+    }
+    
+    .main-content {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      margin-top: 20px;
+    }
+    
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 15px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+    
+    .document-preview {
+      background: #f8fbff;
+      border: 1px solid #d6eaf8;
+      border-radius: 6px;
+      padding: 15px;
+      margin-top: 15px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    
+    .document-preview h2 {
+      color: var(--accent);
+      margin-top: 0;
+      font-size: 20px;
+      border-bottom: 1px solid #d6eaf8;
+      padding-bottom: 8px;
+    }
+    
+    .document-preview h3 {
+      color: var(--brand);
+      margin-top: 15px;
+      font-size: 16px;
+    }
+    
+    .document-preview ul {
+      padding-left: 20px;
+    }
+    
+    .document-preview li {
+      margin-bottom: 5px;
+    }
+    
+    .document-preview strong {
+      color: var(--accent);
+    }
+    
+    /* Enhanced sidebar styling */
+    .ls .pane-title {
+      font-size: 16px;
+      color: var(--brand);
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 10px;
+    }
+    
+    .account-section .pane-title {
+      font-size: 16px;
+      color: var(--brand);
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 10px;
+    }
+    
+    /* Enhanced button styling */
+    .btn {
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+    }
+    
+    .btn:before {
+      content: "•";
+      margin-right: 8px;
+      color: var(--brand);
+    }
+    
+    .btn.brand:before {
+      color: white;
+    }
+    
+    /* Enhanced category styling */
+    .category {
+      border-radius: 6px;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #d6eaf8;
+      background: #f8fbff;
+    }
+    
+    .category-title {
+      font-size: 14px;
+      color: var(--accent);
+    }
+    
+    .active-category {
+      background: #e8f5e8 !important;
+      border-left: 4px solid var(--success);
+    }
+    
+    /* Enhanced topbar styling */
+    .topbar {
+      background: white;
+      border-radius: 8px;
+      padding: 12px 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    
+    .topbar .muted {
+      font-weight: 500;
+    }
+    
+    /* Enhanced upload card */
+    .upload-card {
+      background: #f8fbff;
+      border: 2px dashed #b3d9ff;
+      border-radius: 8px;
+      padding: 16px;
+    }
+    
+    /* Document list styling */
+    .documents-list {
+      background: white;
+      border-radius: 6px;
+      padding: 8px;
+      border: 1px solid #e8f4f8;
+    }
+    
+    /* Document item styling */
+    .document-item {
+      background: white;
+      border: 1px solid #e8f4f8;
+      border-radius: 6px;
+      padding: 10px 30px 10px 12px;
+      margin: 6px 0;
+      transition: all 0.2s ease;
+      font-size: 14px;
+    }
+    
+    .document-item:hover {
+      background: #f0f8ff;
+      border-color: #b3d9ff;
+    }
+    
+    /* Welcome message styling */
+    .welcome-message {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 5px;
+    }
+    
+    .profession-badge {
+      display: inline-block;
+      background: var(--light-bg);
+      color: var(--accent);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      margin-left: 10px;
+    }   
+  </style>
+</head>
+<body>
+<div id="app" class="app">
+  <aside id="ls" class="sidebar ls">
+    <div class="pane-title">Categories <button id="addCategoryBtn" class="add-category-icon">+</button></div>
+    <div class="categories-container">
+      <div class="category active-category" data-category="all"><div class="category-title">All Documents</div></div>
+    </div>
+    <div class="account-section">
+      <div class="pane-title">Account</div>
+      <button class="btn" onclick="window.location.href='/feedback'">User Feedback</button>
+      <button class="btn">{{ latest_membership }}</button>
+      <button class="btn" onclick="window.location.href='/membership'">Purchase Plan</button>
+      <a class="logout" href="/logout">Logout</a>
+    </div>
+  </aside>
+
+  <div id="bar-ls" class="resizer"><button id="btnLS" class="collapse-btn">«</button></div>
+  <aside id="us" class="sidebar us">
+    <div class="pane-title">Upload Document</div>
+    <div class="upload-card">
+      <form id="uploadForm" action="/upload-document" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" required multiple />
+        <button type="submit" class="btn brand" style="width:100%">Upload Files</button>
+      </form>
+    </div>
+    <div class="pane-title" style="margin-top:24px">Documents</div>
+    <div id="current-category" class="muted" style="margin-bottom:12px">Showing: All Documents</div>
+    <div id="documents-container" class="documents-list"></div>
+  </aside>
+
+  <div id="bar-us" class="resizer"><button id="btnUS" class="collapse-btn">«</button></div>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="muted">{{ name }}</div>
+      <div class="muted">{{ profession }}</div>
+      <div class="topbar-actions">
+        <button id="downloadBtn" class="action-btn secondary">Download</button>
+        {% if latest_membership != "Free" %}
+          <button id="generateBtn" class="action-btn">Generate</button>
+        {% else %}
+          <button id="generateBtn" class="action-btn" disabled title="Upgrade to use Generate">Generate</button>
+        {% endif %}
+      </div>
+    </div>
+    <h1>Welcome back, {{ name }}</h1>
+    <p class="welcome-subtitle muted">Manage your documents and generate summaries with ease</p>
+  </main>
+</div>
+
+<div id="templateModal" class="template-selector-modal hidden">
+  <div class="template-selector-container">
+    <div class="sidebar">
+      <div class="sidebar-title">Templates</div>
+      <div id="templateList" class="sidebar-section"></div>
+    </div>
+    <div class="content-area">
+      <div id="templateContent" class="content-container"></div>
+      <button class="generate-button" onclick="useSelectedTemplate()">Use Template</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+const $ = selector => document.querySelector(selector);
+const $$ = selector => document.querySelectorAll(selector);
+const app = $('#app');
+
+// --- Sidebar collapse setup ---
+function initResizeButtons() {
+  const bLS = document.getElementById('btnLS');
+  const bUS = document.getElementById('btnUS');
+  if (bLS) bLS.textContent = '«';
+  if (bUS) bUS.textContent = '«';
+}
+
+function state() {
+  return {
+    hasLS: !app.classList.contains('collapse-ls'),
+    hasUS: !app.classList.contains('collapse-us')
+  };
+}
+
+function applyCollapse(ls, us) {
+  app.classList.toggle('collapse-ls', !ls);
+  app.classList.toggle('collapse-us', !us);
+  app.classList.toggle('collapse-both', !ls && !us);
+
+  const btnLS = document.getElementById('btnLS');
+  const btnUS = document.getElementById('btnUS');
+  if (btnLS) btnLS.textContent = ls ? '«' : '»';
+  if (btnUS) btnUS.textContent = us ? '«' : '»';
+}
+
+document.getElementById('btnLS').onclick = () => {
+  const s = state();
+  applyCollapse(!s.hasLS, s.hasUS);
+};
+document.getElementById('btnUS').onclick = () => {
+  const s = state();
+  applyCollapse(s.hasLS, !s.hasUS);
+};
+
+// --- Document creation (single function) ---
+let selectedDocumentId = null;
+function createDocumentItem(doc) {
+  const div = document.createElement('div');
+  div.className = 'document-item';
+  div.textContent = doc.filename || doc.name || 'untitled';
+  div.dataset.docId = doc.id;
+
+  div.onclick = (e) => {
+    e.stopPropagation();
+    document.querySelectorAll('.document-item').forEach(d => d.classList.remove('active-category'));
+    div.classList.add('active-category');
+    selectedDocumentId = doc.id;
+  };
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'document-delete-btn';
+  delBtn.textContent = '🗑';
+  delBtn.onclick = async (e) => {
+    e.stopPropagation();
+    if (confirm(`Delete "${doc.filename}"?`)) {
+      await fetch(`/delete-document/${doc.id}`, { method: 'GET' });
+      await loadDocuments();
+    }
+  };
+
+  div.appendChild(delBtn);
+  return div;
+}
+
+async function loadDocuments() {
+  try {
+    const res = await fetch('/get-documents');
+    if (!res.ok) throw new Error('Failed to fetch documents');
+    const docs = await res.json();
+    const container = $('#documents-container');
+    container.innerHTML = '';
+    if (!Array.isArray(docs) || docs.length === 0) {
+      container.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px;">No documents found</div>';
+      return;
+    }
+    docs.forEach(doc => container.appendChild(createDocumentItem(doc)));
+  } catch (err) {
+    console.error('Error loading documents:', err);
+    const container = $('#documents-container');
+    container.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px;">Unable to load documents</div>';
+  }
+}
+
+// --- Category and UI setup (unchanged parts) ---
+let categories = [];
+let documentCategories = {};
+let currentCategory = 'all';
+async function loadCategories() {
+  try {
+    const res = await fetch('/get_categories');
+    if (!res.ok) throw new Error('Failed to load categories');
+    categories = await res.json();
+  } catch (err) {
+    console.error('Error loading categories:', err);
+    categories = [];
+  }
+  renderCategories();
+}
+
+function renderCategories() {
+  const container = document.querySelector('.categories-container');
+  const existing = container.querySelectorAll('.category:not([data-category="all"])');
+  existing.forEach(el => el.remove());
+  categories.forEach(category => {
+    const categoryEl = document.createElement('div');
+    categoryEl.className = 'category';
+    categoryEl.dataset.category = String(category.id);
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'category-title';
+    titleEl.textContent = category.name;
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'delete-category';
+    deleteBtn.textContent = '🗑';
+    deleteBtn.onclick = (e) => {
+      e.stopPropagation();
+      deleteCategory(category.id);
+    };
+
+    categoryEl.appendChild(titleEl);
+    categoryEl.appendChild(deleteBtn);
+    categoryEl.onclick = () => setCurrentCategory(String(category.id));
+    container.appendChild(categoryEl);
+  });
+}
+
+// --- Initialize app ---
+document.addEventListener('DOMContentLoaded', () => {
+  initResizeButtons();
+  loadCategories();
+  loadDocuments();
+
+  const allDocsCategory = document.querySelector('.category[data-category="all"]');
+  if (allDocsCategory) {
+    allDocsCategory.onclick = () => setCurrentCategory('all');
+  }
+
+  const s = state();
+  const btnLS = document.getElementById('btnLS');
+  const btnUS = document.getElementById('btnUS');
+  if (btnLS) btnLS.textContent = s.hasLS ? '«' : '»';
+  if (btnUS) btnUS.textContent = s.hasUS ? '«' : '»';
+
+  const addCategoryBtn = document.getElementById('addCategoryBtn');
+  if (addCategoryBtn) {
+    addCategoryBtn.addEventListener('click', () => {
+      const categoryName = prompt('Enter new category name:');
+      if (categoryName && categoryName.trim()) addCategory(categoryName.trim());
+    });
+  }
+});
+
+// --- FIXED TEMPLATE MODAL LOGIC ---
+document.getElementById('generateBtn').addEventListener('click', async () => {
+  const modal = document.getElementById('templateModal'); // ✅ fixed ID
+  modal.classList.remove('hidden');
+
+  try {
+    const res = await fetch('/get_templates');
+    const templates = await res.json();
+    const list = document.getElementById('templateList');
+    const content = document.getElementById('templateContent');
+    list.innerHTML = '';
+    content.innerHTML = '';
+
+    templates.forEach(t => {
+      const item = document.createElement('div');
+      item.className = 'sidebar-item';
+      item.textContent = t.name;
+      item.onclick = () => {
+        document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        content.innerHTML = `
+          <div class="content-box">
+            <div class="content-box-title">${t.name}</div>
+            <div class="content-box-description">${t.prompt}</div>
+          </div>
+        `;
+        content.dataset.selectedTemplateId = t.id;
+      };
+      list.appendChild(item);
+    });
+  } catch (err) {
+    console.error('Failed to load templates:', err);
+  }
+});
+
+// --- FIXED USE TEMPLATE FUNCTION ---
+async function useSelectedTemplate() {
+  console.log("✅ Use Template clicked");
+  const selectedId = document.getElementById('templateContent').dataset.selectedTemplateId;
+  if (!selectedId) return alert('Please select a template');
+  if (!selectedDocumentId) return alert('Please select one document before generating.');
+
+  try {
+    const resT = await fetch('/get_templates');
+    const templates = await resT.json();
+    const chosen = templates.find(t => t.id == selectedId);
+    if (!chosen) return alert('Template not found');
+
+    const main = document.querySelector('.main');
+    const loader = document.createElement('div');
+    loader.textContent = "⏳ Summarizing document, please wait...";
+    loader.style.padding = "20px";
+    loader.style.background = "#f0f8ff";
+    loader.style.borderRadius = "8px";
+    main.appendChild(loader);
+
+    const response = await fetch('/summarize_document', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        document_id: selectedDocumentId,
+        prompt: chosen.prompt
+      })
+    });
+
+    loader.remove();
+    const data = await response.json();
+    if (!data.success) throw new Error(data.error || 'Unknown error');
+    document.getElementById('templateModal').classList.add('hidden');
+
+    const preview = document.createElement('div');
+    preview.className = 'document-preview';
+    preview.innerHTML = `<h2>Summary for ${data.filename}</h2><p>${data.summary.replace(/\n/g, '<br>')}</p>`;
+    main.appendChild(preview);
+    console.log("✅ Summary generated successfully");
+  } catch (err) {
+    alert('Error summarizing: ' + err.message);
+    console.error(err);
+  }
+}
+
+// --- Close modal when clicking outside ---
+window.addEventListener('click', (e) => {
+  if (e.target.classList.contains('template-selector-modal')) {
+    document.getElementById('templateModal').classList.add('hidden');
+  }
+});
+</script>
+
+</body>
+</html>
+
+
+
+
