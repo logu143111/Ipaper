@@ -14,4 +14,4 @@ requests
 transformers
 torch
 protobuf==5.28.3
-google-generativeai==1.3.0
+google-generativeai==0.8.5
