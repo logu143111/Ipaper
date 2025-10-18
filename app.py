@@ -19,7 +19,6 @@ import uuid
 from datetime import datetime, timedelta
 import traceback
 from PyPDF2 import PdfReader
-import google.generativeai as genai
 import io
 
 
@@ -1040,6 +1039,7 @@ def summarize_document():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
