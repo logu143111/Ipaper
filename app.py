@@ -1022,15 +1022,10 @@ def summarize_document():
         return jsonify({"success": False, "error": str(e)}), 500
         
 
-@app.route("/check_gemini_version")
-def check_gemini_version():
-    import google.generativeai as genai
-    return {"gemini_version": getattr(genai, "__version__", "unknown")}
-
-
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
