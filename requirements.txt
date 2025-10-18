@@ -11,4 +11,6 @@ pdfplumber
 nltk
 scikit-learn
 requests
-openai==1.44.0
+transformers
+torch
+openai==1.51.2
