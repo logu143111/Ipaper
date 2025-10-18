@@ -980,11 +980,12 @@ def summarize_document():
         if not doc_id or not template_prompt:
             return jsonify({"success": False, "error": "Missing parameters"}), 400
 
-        # Fetch PDF from DB
         conn = get_db_connection()
         cur = conn.cursor()
-        cur.execute("SELECT attachment, filename FROM files WHERE fileid = %s AND userid = %s",
-                    (doc_id, session['user_id']))
+        cur.execute(
+            "SELECT attachment, filename FROM files WHERE fileid = %s AND userid = %s",
+            (doc_id, session['user_id']),
+        )
         row = cur.fetchone()
         cur.close()
         conn.close()
@@ -993,25 +994,20 @@ def summarize_document():
             return jsonify({"success": False, "error": "File not found"}), 404
 
         pdf_data, filename = row
-        pdf_bytes = pdf_data.tobytes() if hasattr(pdf_data, 'tobytes') else pdf_data
+        pdf_bytes = pdf_data.tobytes() if hasattr(pdf_data, "tobytes") else pdf_data
 
-        # Extract text safely
         from PyPDF2 import PdfReader
         import io
 
         text_chunks = []
         reader = PdfReader(io.BytesIO(pdf_bytes))
-        for page_num, page in enumerate(reader.pages[:5]):  # Limit pages
+        for page in reader.pages[:5]:
             page_text = page.extract_text()
             if page_text:
                 text_chunks.append(page_text)
 
-        text = "\n".join(text_chunks)[:15000]  # Limit to 15k chars
+        text = "\n".join(text_chunks)[:15000]
 
-        if not text.strip():
-            return jsonify({"success": False, "error": "No text extracted from PDF"}), 400
-
-        # --- Gemini API v1 setup ---
         genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
         model = genai.GenerativeModel("gemini-1.5-flash")
 
@@ -1023,7 +1019,7 @@ def summarize_document():
 
     except Exception as e:
         print("Gemini API error:", e)
-        return jsonify({"success": False, "error": f"Gemini API error: {e}"}), 500
+        return jsonify({"success": False, "error": str(e)}), 500
         
 
 @app.route("/check_gemini_version")
@@ -1035,6 +1031,7 @@ def check_gemini_version():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
