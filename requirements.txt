@@ -11,7 +11,4 @@ pdfplumber
 nltk
 scikit-learn
 requests
-transformers
-torch
-protobuf==5.28.3
-google-generativeai==0.8.5
+openai==1.44.0
