@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, flash, session
 import psycopg2
-from openai import OpenAI
+from groq import Groq
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from flask_session import Session
@@ -1041,6 +1041,7 @@ def summarize_document():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
