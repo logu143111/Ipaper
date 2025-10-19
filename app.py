@@ -1018,9 +1018,13 @@ def summarize_document():
             return jsonify({"success": False, "error": "No text extracted"}), 400
 
         response = client.chat.completions.create(
-            model="llama-3.1-70b-versatile",
-            messages=[{"role": "user", "content": text}]
-        )
+            model="llama-3.2-11b-text-preview",
+            messages=[
+        {"role": "system", "content": "Summarize this text clearly and concisely."},
+        {"role": "user", "content": text}
+    ]
+)
+        
         summary = response.choices[0].message.content
         
 
@@ -1036,6 +1040,7 @@ def summarize_document():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
