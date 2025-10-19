@@ -1017,17 +1017,23 @@ def summarize_document():
         if not text.strip():
             return jsonify({"success": False, "error": "No text extracted"}), 400
 
-        # --- OpenAI Summarization ---
-        prompt = f"{template_prompt}\n\nDocument content:\n{text}"
-
+        try:
+    response = client.chat.completions.create(
+        model="llama-3.1-70b-versatile",
+        messages=[{"role": "user", "content": text}]
+    )
+    summary = response.choices[0].message.content
+except Exception as e:
+    # fallback to smaller model
+    try:
         response = client.chat.completions.create(
-            model="mixtral-8x7b-32768",
+            model="llama-3.1-8b-instant",
             messages=[{"role": "user", "content": text}]
-)
-
-
-
+        )
         summary = response.choices[0].message.content
+    except Exception as e2:
+        summary = f"Error summarizing: {e2}"
+
 
         return jsonify({"success": True, "summary": summary})
 
@@ -1040,6 +1046,7 @@ def summarize_document():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
