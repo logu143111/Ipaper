@@ -1017,22 +1017,12 @@ def summarize_document():
         if not text.strip():
             return jsonify({"success": False, "error": "No text extracted"}), 400
 
-        try:
-    response = client.chat.completions.create(
-        model="llama-3.1-70b-versatile",
-        messages=[{"role": "user", "content": text}]
-    )
-    summary = response.choices[0].message.content
-except Exception as e:
-    # fallback to smaller model
-    try:
         response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model="llama-3.1-70b-versatile",
             messages=[{"role": "user", "content": text}]
         )
         summary = response.choices[0].message.content
-    except Exception as e2:
-        summary = f"Error summarizing: {e2}"
+        
 
 
         return jsonify({"success": True, "summary": summary})
@@ -1046,6 +1036,7 @@ except Exception as e:
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
