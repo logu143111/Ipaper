@@ -25,7 +25,8 @@ import io
 
 load_dotenv()
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "default_secret_key")
 app.config["SESSION_PERMANENT"] = False
@@ -1020,15 +1021,12 @@ def summarize_document():
         prompt = f"{template_prompt}\n\nDocument content:\n{text}"
 
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "You are a helpful summarization assistant."},
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=500
-        )
+            model="mixtral-8x7b",
+            messages=[{"role": "user", "content": text}]
+)
 
-        summary = response.choices[0].message.content.strip()
+
+        summary = response.choices[0].message.content
 
         return jsonify({"success": True, "summary": summary})
 
@@ -1041,6 +1039,7 @@ def summarize_document():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
