@@ -25,6 +25,7 @@ import io
 
 load_dotenv()
 
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "default_secret_key")
 app.config["SESSION_PERMANENT"] = False
@@ -37,7 +38,7 @@ ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx'}
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -1040,6 +1041,7 @@ def summarize_document():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
