@@ -13,4 +13,4 @@ scikit-learn
 requests
 torch
 protobuf==5.28.2
-openai==1.42.0
+openai==1.12.0
