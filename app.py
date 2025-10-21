@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, flash, session
 import psycopg2
-from groq import Groq
+from openai import OpenAI
+import requests
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from flask_session import Session
@@ -973,26 +974,120 @@ def get_templates():
 
 
 
+HUGGINGFACE_API_URL = "https://api-inference.huggingface.co/models/facebook/bart-large-cnn"
+HF_TOKEN = os.getenv("HUGGINGFACE_API_KEY")
+
+def extract_text_from_pdf_bytes(pdf_bytes, max_pages=5, char_limit=15000):
+    """
+    Safe PDF text extraction: read up to max_pages and return truncated text.
+    """
+    text_chunks = []
+    try:
+        reader = PdfReader(io.BytesIO(pdf_bytes))
+        # iterate pages safely
+        for page_num, page in enumerate(reader.pages):
+            if page_num >= max_pages:
+                break
+            try:
+                page_text = page.extract_text()
+                if page_text:
+                    text_chunks.append(page_text)
+            except Exception as inner_e:
+                # don't fail extraction for whole file; just skip problematic page
+                print(f"⚠️ Skipped page {page_num}: {inner_e}")
+    except Exception as e:
+        print("⚠️ PDF read error:", e)
+
+    text = "\n".join(text_chunks)
+    # enforce a character limit (helps API reliability)
+    return text.strip()[:char_limit]
+
+def summarize_with_openai(prompt_text, max_tokens=500):
+    """
+    Use OpenAI (primary). Returns summary string or raises an Exception.
+    """
+    if not os.getenv("OPENAI_API_KEY"):
+        raise RuntimeError("OPENAI_API_KEY not set")
+
+    # Build messages for chat completion
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant that summarizes documents concisely."},
+        {"role": "user", "content": prompt_text}
+    ]
+
+    # Use client.chat.completions.create (OpenAI official client pattern)
+    resp = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=messages,
+        max_tokens=max_tokens,
+    )
+    # defensive extraction
+    try:
+        return resp.choices[0].message.content.strip()
+    except Exception as e:
+        raise RuntimeError(f"OpenAI response parsing error: {e}")
+
+def summarize_with_huggingface(text, max_length=200, min_length=30):
+    """
+    Fallback summarization using Hugging Face Inference API.
+    Returns summary string or raises Exception.
+    """
+    if not HF_TOKEN:
+        raise RuntimeError("HUGGINGFACE_API_KEY not set")
+
+    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
+    payload = {
+        "inputs": text,
+        "parameters": {
+            "max_length": max_length,
+            "min_length": min_length,
+            "do_sample": False
+        }
+    }
+    r = requests.post(HUGGINGFACE_API_URL, headers=headers, json=payload, timeout=60)
+    if r.status_code == 200:
+        # HF returns list with summary_text for many models; adapt defensively
+        try:
+            j = r.json()
+            # Some HF models return [{'summary_text': '...'}], others return string or dict
+            if isinstance(j, list) and isinstance(j[0], dict) and "summary_text" in j[0]:
+                return j[0]["summary_text"].strip()
+            if isinstance(j, dict) and "summary_text" in j:
+                return j["summary_text"].strip()
+            # if model returns raw text
+            if isinstance(j, str):
+                return j.strip()
+            # fallback
+            return str(j)[:1000]
+        except Exception as e:
+            raise RuntimeError(f"HuggingFace parse error: {e}")
+    else:
+        raise RuntimeError(f"Hugging Face API error: {r.status_code} {r.text}")
+
 @app.route('/summarize_document', methods=['POST'])
 def summarize_document():
+    """
+    Endpoint expects JSON:
+    {
+      "document_id": <int>,
+      "prompt": "<template prompt text>"
+    }
+    Returns: { success: True/False, summary: "...", source: "openai"|"huggingface", filename: ...}
+    """
     if 'user_id' not in session:
         return jsonify({"success": False, "error": "Not logged in"}), 401
 
     try:
         data = request.get_json()
         doc_id = data.get('document_id')
-        template_prompt = data.get('prompt')
-
+        template_prompt = data.get('prompt', '')
         if not doc_id or not template_prompt:
             return jsonify({"success": False, "error": "Missing parameters"}), 400
 
-        # Fetch PDF from DB
+        # Get file bytes from DB
         conn = get_db_connection()
         cur = conn.cursor()
-        cur.execute(
-            "SELECT attachment, filename FROM files WHERE fileid = %s AND userid = %s",
-            (doc_id, session['user_id']),
-        )
+        cur.execute("SELECT attachment, filename FROM files WHERE fileid = %s AND userid = %s", (doc_id, session['user_id']))
         row = cur.fetchone()
         cur.close()
         conn.close()
@@ -1003,44 +1098,41 @@ def summarize_document():
         pdf_data, filename = row
         pdf_bytes = pdf_data.tobytes() if hasattr(pdf_data, "tobytes") else pdf_data
 
-        # --- Extract text from first 5 pages ---
-        text_chunks = []
-        try:
-            reader = PdfReader(io.BytesIO(pdf_bytes))
-            for page_num, page in enumerate(reader.pages[:5]):
-                page_text = page.extract_text()
-                if page_text:
-                    text_chunks.append(page_text)
-        except Exception as e:
-            print("⚠️ PDF read error:", e)
-
-        text = "\n".join(text_chunks)[:15000]
+        # Extract text
+        text = extract_text_from_pdf_bytes(pdf_bytes, max_pages=5, char_limit=15000)
         if not text.strip():
-            return jsonify({"success": False, "error": "No text extracted"}), 400
+            return jsonify({"success": False, "error": "No text extracted from PDF"}), 400
 
-        response = client.chat.completions.create(
-            model="llama-3.2-11b-text-preview",
-            messages=[
-        {"role": "system", "content": "Summarize this text clearly and concisely."},
-        {"role": "user", "content": text}
-    ]
-)
-        
-        summary = response.choices[0].message.content
-        
+        # Compose prompt for summarization
+        prompt = f"{template_prompt}\n\nDocument content (truncated):\n{text}"
 
+        # Try OpenAI first
+        try:
+            summary = summarize_with_openai(prompt, max_tokens=500)
+            return jsonify({"success": True, "summary": summary, "source": "openai", "filename": filename})
+        except Exception as openai_err:
+            print("OpenAI summarization failed:", openai_err)
 
-        return jsonify({"success": True, "summary": summary})
+            # Fallback: try Hugging Face (use a smaller excerpt if needed)
+            try:
+                # HF often requires shorter input; send last ~2000 chars or split intelligently
+                hf_input = text if len(text) <= 4000 else text[:4000]
+                hf_summary = summarize_with_huggingface(hf_input)
+                return jsonify({"success": True, "summary": hf_summary, "source": "huggingface", "filename": filename})
+            except Exception as hf_err:
+                print("HuggingFace fallback also failed:", hf_err)
+                return jsonify({"success": False, "error": f"OpenAI error: {openai_err} | HF error: {hf_err}"}), 500
 
     except Exception as e:
-        print("OpenAI API error:", e)
-        return jsonify({"success": False, "error": f"OpenAI API error: {e}"}), 500
-
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
 
