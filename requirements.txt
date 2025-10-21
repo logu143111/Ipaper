@@ -12,5 +12,5 @@ nltk
 scikit-learn
 requests
 torch
-protobuf==5.28.2
-openai==1.42.0
+protobuf==4.25.3
+openai==1.3.7
